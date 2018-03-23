@@ -43,8 +43,12 @@ export default class Config {
                 }
 
                 if (result) {
-                    const data = this.getFinalResult(options.format, result);
-                    resolve(_.get(data, path, defaults));
+                    const data = this.getFinalResult(options.format, result.Value);
+                    if (path) {
+                        resolve(_.get(data, path, defaults));
+                    } else {
+                        resolve(data);
+                    }
                 } else {
                     resolve({});
                 }
@@ -62,8 +66,12 @@ export default class Config {
             if (typeof callback === 'function') {
 
                 if (result) {
-                    const data = this.getFinalService(options.format, result);
-                    callback(null, _.get(data, path, defaults), res);
+                    const data = this.getFinalService(options.format, result.Value);
+                    if (path) {
+                        callback(null, _.get(data, path, defaults), res);
+                    } else {
+                        callback(null, data, res);
+                    }
                 } else {
                     callback(null, {}, res);
                 }

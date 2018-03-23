@@ -1,6 +1,6 @@
 {
   "name": "nodecloud-consul-config",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "nodecloud-consul-config",
   "main": "build/Config.js",
   "scripts": {

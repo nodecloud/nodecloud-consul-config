@@ -66,8 +66,12 @@ let Config = class Config {
                     }
 
                     if (result) {
-                        const data = _this.getFinalResult(options.format, result);
-                        resolve(_lodash2.default.get(data, path, defaults));
+                        const data = _this.getFinalResult(options.format, result.Value);
+                        if (path) {
+                            resolve(_lodash2.default.get(data, path, defaults));
+                        } else {
+                            resolve(data);
+                        }
                     } else {
                         resolve({});
                     }
@@ -86,8 +90,12 @@ let Config = class Config {
             if (typeof callback === 'function') {
 
                 if (result) {
-                    const data = this.getFinalService(options.format, result);
-                    callback(null, _lodash2.default.get(data, path, defaults), res);
+                    const data = this.getFinalService(options.format, result.Value);
+                    if (path) {
+                        callback(null, _lodash2.default.get(data, path, defaults), res);
+                    } else {
+                        callback(null, data, res);
+                    }
                 } else {
                     callback(null, {}, res);
                 }
