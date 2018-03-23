@@ -1,21 +1,27 @@
+import _ from 'lodash';
 import * as parser from './parser';
 
 export default class Config {
     /**
      *
      * @param consul consul instance
+     * @param service
+     * @param env
      * @param options
+     * @param options.prefix
      * @param options.format
      */
-    constructor(consul, options = {}) {
-        this.prefix = 'config__';
+    constructor(consul, service, env, options = {}) {
+        this.prefix = options.prefix || 'config__';
         this.consul = consul;
 
+        this.env = env || 'development';
+        this.service = service || 'default';
         this.format = options.format || 'yaml';
     }
 
-    getFinalService(service, env) {
-        return `${this.prefix}${service}__${env}`
+    getFinalService() {
+        return `${this.prefix}${this.service}__${this.env}`
     }
 
     getFinalResult(format, result) {
@@ -27,27 +33,30 @@ export default class Config {
         }
     }
 
-    async get(service, env, options = {}) {
+    async get(path, defaults, options = {}) {
         return new Promise((resolve, reject) => {
-            this.consul.kv.get({...options, key: this.getFinalService(service, env)}, (err, result) => {
+            this.consul.kv.get({...options, key: this.getFinalService()}, (err, result) => {
                 if (err) {
                     return reject(err);
                 }
 
-                resolve(this.getFinalResult(options.format, result));
+                const data = this.getFinalResult(options.format, result);
+
+                resolve(_.get(data, path, defaults));
             })
         });
     }
 
-    watch(service, env, callback, options = {}) {
+    watch(path, defaults, callback, options = {}) {
         const watch = this.consul.watch({
             method: this.consul.kv.get,
-            options: {...options, key: this.getFinalService(service, env)}
+            options: {...options, key: this.getFinalService()}
         });
 
-        watch.on('change', (data, res) => {
+        watch.on('change', (result, res) => {
             if (typeof callback === 'function') {
-                callback(null, this.getFinalService(options.format, data), res);
+                const data = this.getFinalService(options.format, result);
+                callback(null, _.get(data, path, defaults), res);
             }
         });
 
