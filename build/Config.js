@@ -30,6 +30,7 @@ let Config = class Config {
      * @param options
      * @param options.prefix
      * @param options.format
+     * @param options.token
      */
     constructor(consul, service, env, options = {}) {
         this.prefix = options.prefix || 'config__';
@@ -38,6 +39,7 @@ let Config = class Config {
         this.env = env || 'development';
         this.service = service || 'default';
         this.format = options.format || 'yaml';
+        this.token = options.token;
     }
 
     getFinalService() {
@@ -58,14 +60,17 @@ let Config = class Config {
 
         return _asyncToGenerator(function* () {
             return new Promise(function (resolve, reject) {
-                _this.consul.kv.get(_extends({}, options, { key: _this.getFinalService() }), function (err, result) {
+                _this.consul.kv.get(_extends({}, options, { key: _this.getFinalService(), token: _this.token }), function (err, result) {
                     if (err) {
                         return reject(err);
                     }
 
-                    const data = _this.getFinalResult(options.format, result);
-
-                    resolve(_lodash2.default.get(data, path, defaults));
+                    if (result) {
+                        const data = _this.getFinalResult(options.format, result);
+                        resolve(_lodash2.default.get(data, path, defaults));
+                    } else {
+                        resolve({});
+                    }
                 });
             });
         })();
@@ -74,13 +79,18 @@ let Config = class Config {
     watch(path, defaults, callback, options = {}) {
         const watch = this.consul.watch({
             method: this.consul.kv.get,
-            options: _extends({}, options, { key: this.getFinalService() })
+            options: _extends({}, options, { key: this.getFinalService(), token: this.token })
         });
 
         watch.on('change', (result, res) => {
             if (typeof callback === 'function') {
-                const data = this.getFinalService(options.format, result);
-                callback(null, _lodash2.default.get(data, path, defaults), res);
+
+                if (result) {
+                    const data = this.getFinalService(options.format, result);
+                    callback(null, _lodash2.default.get(data, path, defaults), res);
+                } else {
+                    callback(null, {}, res);
+                }
             }
         });
 

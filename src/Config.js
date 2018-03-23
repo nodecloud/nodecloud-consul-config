@@ -10,6 +10,7 @@ export default class Config {
      * @param options
      * @param options.prefix
      * @param options.format
+     * @param options.token
      */
     constructor(consul, service, env, options = {}) {
         this.prefix = options.prefix || 'config__';
@@ -18,6 +19,7 @@ export default class Config {
         this.env = env || 'development';
         this.service = service || 'default';
         this.format = options.format || 'yaml';
+        this.token = options.token;
     }
 
     getFinalService() {
@@ -35,14 +37,17 @@ export default class Config {
 
     async get(path, defaults, options = {}) {
         return new Promise((resolve, reject) => {
-            this.consul.kv.get({...options, key: this.getFinalService()}, (err, result) => {
+            this.consul.kv.get({...options, key: this.getFinalService(), token: this.token}, (err, result) => {
                 if (err) {
                     return reject(err);
                 }
 
-                const data = this.getFinalResult(options.format, result);
-
-                resolve(_.get(data, path, defaults));
+                if (result) {
+                    const data = this.getFinalResult(options.format, result);
+                    resolve(_.get(data, path, defaults));
+                } else {
+                    resolve({});
+                }
             })
         });
     }
@@ -50,13 +55,18 @@ export default class Config {
     watch(path, defaults, callback, options = {}) {
         const watch = this.consul.watch({
             method: this.consul.kv.get,
-            options: {...options, key: this.getFinalService()}
+            options: {...options, key: this.getFinalService(), token: this.token}
         });
 
         watch.on('change', (result, res) => {
             if (typeof callback === 'function') {
-                const data = this.getFinalService(options.format, result);
-                callback(null, _.get(data, path, defaults), res);
+
+                if (result) {
+                    const data = this.getFinalService(options.format, result);
+                    callback(null, _.get(data, path, defaults), res);
+                } else {
+                    callback(null, {}, res);
+                }
             }
         });
 
