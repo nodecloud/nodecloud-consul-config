@@ -66,7 +66,7 @@ export default class Config {
             if (typeof callback === 'function') {
 
                 if (result) {
-                    const data = this.getFinalService(options.format, result.Value);
+                    const data = this.getFinalResult(options.format, result.Value);
                     if (path) {
                         callback(null, _.get(data, path, defaults), res);
                     } else {
